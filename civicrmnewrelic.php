@@ -1,10 +1,14 @@
 <?php
 
 /**
- * This function inspects any requests to CiviCRM pages and API and generates
- * a better, more descriptive, transaction name for New Relic.
+ * @file
+ * Extension file.
+ */
+
+/**
+ * Generates a better, more descriptive, transaction name for New Relic.
  *
- * For APIs, the transaction name will look like Entity.Action.
+ * For APIs, the transaction name will look like `Entity.Action`.
  *
  * For calls to the Api3.call API, a inner_calls param will be added to the
  * transaction and it will contain a list of the inner API calls.
@@ -18,6 +22,7 @@
  * perfect candidate for this piece of functionality.
  *
  * @param \CRM_Core_Config $config
+ *   The CiviCRM config object.
  */
 function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
   /*
@@ -30,12 +35,12 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
   }
 
   $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-  $transactionName = null;
+  $transactionName = NULL;
 
   if ($uri === '/civicrm/ajax/rest') {
-    $entity = $_REQUEST['entity'] ?? null;
-    $action = $_REQUEST['action'] ?? null;
-    $innerCalls = null;
+    $entity = $_REQUEST['entity'] ?? NULL;
+    $action = $_REQUEST['action'] ?? NULL;
+    $innerCalls = NULL;
 
     /*
      * This handles the case where multiple API calls are sent in one single
@@ -45,19 +50,18 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
      * which API calls have been sent.
      */
     if ($entity === 'api3' && $action === 'call' && !empty($_POST['json'])) {
-      $apiCalls = json_decode($_POST['json'], false, 512);
+      $apiCalls = json_decode($_POST['json'], FALSE, 512);
 
-      if ($apiCalls === null) {
-        // it was not possible to parse the json, so let's set it to an empty array
+      if ($apiCalls === NULL) {
+        // It wasn't possible to parse the json, so we set it to an empty array.
         $apiCalls = [];
       }
 
       $innerCalls = [];
-      foreach($apiCalls as $apiCall) {
+      foreach ($apiCalls as $apiCall) {
         $innerCalls[] = "$apiCall[0].$apiCall[1]";
       }
     }
-
 
     if ($entity && $action) {
       newrelic_name_transaction("$entity.$action");
@@ -65,8 +69,8 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
         newrelic_add_custom_parameter('inner_calls', implode(', ', $innerCalls));
       }
     }
-  } else {
+  }
+  else {
     newrelic_name_transaction($uri);
   }
 }
-

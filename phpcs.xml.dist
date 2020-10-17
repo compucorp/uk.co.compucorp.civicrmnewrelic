@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="PHPCS Drupal Ruleset">
+  <description>PHP CodeSniffer configuration for Drupal development.</description>
+
+  <arg name="extensions" value="php"/>
+
+  <config name="drupal_core_version" value="7"/>
+
+  <!-- Drupal sniffs -->
+  <rule ref="bin/drupal-coder/coder_sniffer/Drupal">
+  </rule>
+</ruleset>
