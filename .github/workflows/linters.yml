@@ -1,0 +1,27 @@
+name: Linters
+
+on: pull_request
+
+env:
+  GITHUB_BASE_REF: ${{ github.base_ref }}
+
+jobs:
+  run-linters:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install phpcs
+        run: |
+          mkdir bin
+          curl -L https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar -o ./bin/phpcs
+          chmod +x ./bin/phpcs
+          git clone --depth 1 https://github.com/civicrm/coder.git ./bin/drupal-coder
+
+      - name: Fetch target branch
+        run: git fetch -n origin ${GITHUB_BASE_REF}
+
+      - name: Run phpcs with Drupal coding standards
+        run: git diff --diff-filter=d  origin/${GITHUB_BASE_REF} --name-only -- '*.php' | xargs -r ./bin/phpcs

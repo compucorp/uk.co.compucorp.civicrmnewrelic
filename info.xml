@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<extension key="uk.co.compucorp.civicrmnewrelic" type="module">
+  <file>civicrmnewrelic</file>
+  <name>CiviCRM New Relic</name>
+  <description>Gerenates more descriptive transaction names on New Relic for CiviCRM requests </description>
+  <license>AGPL-3.0</license>
+  <maintainer>
+    <author>Compucorp Ltd.</author>
+    <email>info@compucorp.co.uk</email>
+  </maintainer>
+  <releaseDate>2020-10-19</releaseDate>
+  <version>1.0.0</version>
+  <develStage>stable</develStage>
+  <compatibility>
+    <ver>5.28</ver>
+  </compatibility>
+</extension>
