@@ -2,7 +2,7 @@
 <extension key="uk.co.compucorp.civicrmnewrelic" type="module">
   <file>civicrmnewrelic</file>
   <name>CiviCRM New Relic</name>
-  <description>Gerenates more descriptive transaction names on New Relic for CiviCRM requests </description>
+  <description>Generates more descriptive transaction names on New Relic for CiviCRM requests </description>
   <license>AGPL-3.0</license>
   <maintainer>
     <author>Compucorp Ltd.</author>

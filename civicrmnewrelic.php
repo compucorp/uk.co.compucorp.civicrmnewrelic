@@ -34,40 +34,52 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
     return;
   }
 
-  $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-  $transactionName = NULL;
+  $uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+  if (empty($uri)) {
+    // No usable path (e.g. missing/malformed REQUEST_URI); nothing to name.
+    return;
+  }
 
   if ($uri === '/civicrm/ajax/rest') {
     $entity = $_REQUEST['entity'] ?? NULL;
     $action = $_REQUEST['action'] ?? NULL;
-    $innerCalls = NULL;
+
+    /*
+     * entity/action are always string|null from CiviCRM's REST dispatcher.
+     * Guard against non-string values (e.g. array-style "entity[]=x") and
+     * empty strings. The literal string "0" is intentionally allowed here
+     * (the previous truthiness check rejected it); this is harmless as no
+     * real entity/action is "0".
+     */
+    $entityValid = is_string($entity) && $entity !== '';
+    $actionValid = is_string($action) && $action !== '';
+    if (!$entityValid || !$actionValid) {
+      return;
+    }
+
+    $innerCalls = [];
 
     /*
      * This handles the case where multiple API calls are sent in one single
-     * HTTP request.
-     * In cases like this, a custom parameter called inner_calls will be added
-     * to the New Relic transaction, so that it's possible to know exactly
-     * which API calls have been sent.
+     * HTTP request. A custom parameter called inner_calls is added to the
+     * New Relic transaction so it's possible to know exactly which API calls
+     * were sent.
      */
     if ($entity === 'api3' && $action === 'call' && !empty($_POST['json'])) {
       $apiCalls = json_decode($_POST['json'], FALSE, 512);
 
-      if ($apiCalls === NULL) {
-        // It wasn't possible to parse the json, so we set it to an empty array.
-        $apiCalls = [];
-      }
-
-      $innerCalls = [];
-      foreach ($apiCalls as $apiCall) {
-        $innerCalls[] = "$apiCall[0].$apiCall[1]";
+      if (is_array($apiCalls)) {
+        foreach ($apiCalls as $apiCall) {
+          if (is_array($apiCall) && isset($apiCall[0], $apiCall[1])) {
+            $innerCalls[] = "{$apiCall[0]}.{$apiCall[1]}";
+          }
+        }
       }
     }
 
-    if ($entity && $action) {
-      newrelic_name_transaction("$entity.$action");
-      if (!empty($innerCalls)) {
-        newrelic_add_custom_parameter('inner_calls', implode(', ', $innerCalls));
-      }
+    newrelic_name_transaction("$entity.$action");
+    if (!empty($innerCalls)) {
+      newrelic_add_custom_parameter('inner_calls', implode(', ', $innerCalls));
     }
   }
   else {
