@@ -102,4 +102,20 @@ class ResolveTest extends TestCase {
     $this->assertArrayNotHasKey('inner_calls', $r['params']);
   }
 
+  public function testZeroAndNegativeIdRejected(): void {
+    $this->assertArrayNotHasKey('civicrm.cid', $this->resolve(['REQUEST_URI' => '/civicrm/x'], ['cid' => '0'])['params']);
+    $this->assertArrayNotHasKey('civicrm.cid', $this->resolve(['REQUEST_URI' => '/civicrm/x'], ['cid' => '-3'])['params']);
+  }
+
+  public function testJsonAsArrayDoesNotFatal(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/ajax/rest'], ['entity' => 'api3', 'action' => 'call'], ['json' => ['x']]);
+    $this->assertSame('api3.call', $r['name']);
+    $this->assertArrayNotHasKey('inner_calls', $r['params']);
+  }
+
+  public function testObjectFormMulticallRecordsInnerCalls(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/ajax/rest'], ['entity' => 'api3', 'action' => 'call'], ['json' => '{"c1":["Contact","get"]}']);
+    $this->assertSame('Contact.get', $r['params']['inner_calls']);
+  }
+
 }

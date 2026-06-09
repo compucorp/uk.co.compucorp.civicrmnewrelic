@@ -44,7 +44,7 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
     foreach (['cid', 'gid'] as $idKey) {
       $value = $request[$idKey] ?? NULL;
       $id = is_scalar($value) ? filter_var($value, FILTER_VALIDATE_INT) : FALSE;
-      if ($id !== FALSE) {
+      if ($id !== FALSE && $id > 0) {
         $result['params']["civicrm.$idKey"] = $id;
       }
     }
@@ -73,8 +73,9 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
      * For Api3.call (multiple API calls in one request) record the inner
      * calls so it's possible to know exactly which API calls were sent.
      */
-    if ($entity === 'api3' && $action === 'call' && !empty($post['json'])) {
-      $apiCalls = json_decode($post['json'], FALSE, 512);
+    if ($entity === 'api3' && $action === 'call'
+      && !empty($post['json']) && is_string($post['json'])) {
+      $apiCalls = json_decode($post['json'], TRUE, 512);
       $innerCalls = [];
       if (is_array($apiCalls)) {
         foreach ($apiCalls as $apiCall) {
