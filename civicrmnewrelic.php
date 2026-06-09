@@ -43,8 +43,9 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
   if (strpos($uri, '/civicrm/') === 0) {
     foreach (['cid', 'gid'] as $idKey) {
       $value = $request[$idKey] ?? NULL;
-      if (is_scalar($value) && is_numeric($value)) {
-        $result['params']["civicrm.$idKey"] = (int) $value;
+      $id = is_scalar($value) ? filter_var($value, FILTER_VALIDATE_INT) : FALSE;
+      if ($id !== FALSE) {
+        $result['params']["civicrm.$idKey"] = $id;
       }
     }
   }
@@ -77,7 +78,8 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
       $innerCalls = [];
       if (is_array($apiCalls)) {
         foreach ($apiCalls as $apiCall) {
-          if (is_array($apiCall) && isset($apiCall[0], $apiCall[1])) {
+          if (is_array($apiCall) && isset($apiCall[0], $apiCall[1])
+            && is_string($apiCall[0]) && is_string($apiCall[1])) {
             $innerCalls[] = "{$apiCall[0]}.{$apiCall[1]}";
           }
         }

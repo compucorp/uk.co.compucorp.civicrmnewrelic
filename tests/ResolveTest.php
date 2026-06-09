@@ -86,4 +86,20 @@ class ResolveTest extends TestCase {
     $this->assertArrayNotHasKey('civicrm.cid', $r['params']);
   }
 
+  public function testFloatStringIdRejected(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/contact/view'], ['cid' => '12.3']);
+    $this->assertArrayNotHasKey('civicrm.cid', $r['params']);
+  }
+
+  public function testScientificStringIdRejected(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/contact/view'], ['cid' => '1e3']);
+    $this->assertArrayNotHasKey('civicrm.cid', $r['params']);
+  }
+
+  public function testInnerCallObjectElementSkippedNoFatal(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/ajax/rest'], ['entity' => 'api3', 'action' => 'call'], ['json' => '[[{}, "get"]]']);
+    $this->assertSame('api3.call', $r['name']);
+    $this->assertArrayNotHasKey('inner_calls', $r['params']);
+  }
+
 }
