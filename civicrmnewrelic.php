@@ -33,16 +33,19 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
   }
 
   /*
-   * Attach CiviCRM record context (IDs only, never PII) when present, so a
-   * slow/errored transaction can be tied to a specific record in New Relic
-   * (e.g. "which contact is this slow contact/view for?"). Values are cast to
-   * int and only accepted when numeric; newrelic_add_custom_parameter needs
-   * scalars.
+   * Attach CiviCRM record context (contact/group IDs only, never names) when
+   * present, so a slow/errored transaction can be tied to a specific record
+   * in New Relic (e.g. "which contact is this slow contact/view for?"). Scoped
+   * to /civicrm/ routes to avoid collisions with non-CiviCRM params (e.g.
+   * Drupal's comment "cid"). Values are cast to int and only accepted when
+   * numeric; newrelic_add_custom_parameter needs scalars.
    */
-  foreach (['cid', 'gid'] as $idKey) {
-    $value = $request[$idKey] ?? NULL;
-    if (is_scalar($value) && is_numeric($value)) {
-      $result['params']["civicrm.$idKey"] = (int) $value;
+  if (strpos($uri, '/civicrm/') === 0) {
+    foreach (['cid', 'gid'] as $idKey) {
+      $value = $request[$idKey] ?? NULL;
+      if (is_scalar($value) && is_numeric($value)) {
+        $result['params']["civicrm.$idKey"] = (int) $value;
+      }
     }
   }
 

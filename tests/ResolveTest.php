@@ -80,4 +80,10 @@ class ResolveTest extends TestCase {
     $this->assertSame('/civicrm/dashboard', $r['name']);
   }
 
+  public function testNonCiviRouteDoesNotAttachCid(): void {
+    // Drupal comment routes also use ?cid= — must NOT become civicrm.cid.
+    $r = $this->resolve(['REQUEST_URI' => '/node/5?cid=10'], ['cid' => '10']);
+    $this->assertArrayNotHasKey('civicrm.cid', $r['params']);
+  }
+
 }
