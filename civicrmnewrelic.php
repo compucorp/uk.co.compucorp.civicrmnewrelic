@@ -70,7 +70,8 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
 
       if (is_array($apiCalls)) {
         foreach ($apiCalls as $apiCall) {
-          if (is_array($apiCall) && isset($apiCall[0], $apiCall[1])) {
+          if (is_array($apiCall) && isset($apiCall[0], $apiCall[1])
+            && is_string($apiCall[0]) && is_string($apiCall[1])) {
             $innerCalls[] = "{$apiCall[0]}.{$apiCall[1]}";
           }
         }
