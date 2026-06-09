@@ -65,8 +65,9 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
      * New Relic transaction so it's possible to know exactly which API calls
      * were sent.
      */
-    if ($entity === 'api3' && $action === 'call' && !empty($_POST['json'])) {
-      $apiCalls = json_decode($_POST['json'], FALSE, 512);
+    if ($entity === 'api3' && $action === 'call'
+      && !empty($_POST['json']) && is_string($_POST['json'])) {
+      $apiCalls = json_decode($_POST['json'], TRUE, 512);
 
       if (is_array($apiCalls)) {
         foreach ($apiCalls as $apiCall) {
