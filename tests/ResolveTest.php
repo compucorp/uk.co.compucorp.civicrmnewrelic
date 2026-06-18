@@ -47,9 +47,20 @@ class ResolveTest extends TestCase {
     $this->assertSame('Contact.get, Activity.getcount', $r['params']['inner_calls']);
   }
 
-  public function testApi3CallMalformedJsonObjectNoFatalNoInner(): void {
-    // Valid JSON but objects, not arrays — must not fatal and must skip.
+  public function testApi3CallObjectWithNumericKeysTreatedAsTuple(): void {
+    // A JSON object whose keys happen to be "0"/"1" decodes (assoc) to a PHP
+    // array with integer keys 0,1 — indistinguishable from a tuple ["x","y"],
+    // so it is recorded rather than skipped. The essential guarantee is that
+    // it must not fatal (it did under the old object-decode path).
     $r = $this->resolve(['REQUEST_URI' => '/civicrm/ajax/rest'], ['entity' => 'api3', 'action' => 'call'], ['json' => '[{"0":"x","1":"y"}]']);
+    $this->assertSame('api3.call', $r['name']);
+    $this->assertSame('x.y', $r['params']['inner_calls']);
+  }
+
+  public function testApi3CallObjectElementWithNonNumericKeysSkipped(): void {
+    // A JSON object element without 0/1 positions has no tuple to read, so it
+    // is skipped (no inner_calls) and must not fatal.
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/ajax/rest'], ['entity' => 'api3', 'action' => 'call'], ['json' => '[{"a":"x","b":"y"}]']);
     $this->assertSame('api3.call', $r['name']);
     $this->assertArrayNotHasKey('inner_calls', $r['params']);
   }
