@@ -6,6 +6,20 @@
  */
 
 /**
+ * Validates a request value as a positive integer ID.
+ *
+ * @param mixed $value
+ *   The raw request value (e.g. from $_REQUEST).
+ *
+ * @return int|null
+ *   The integer when $value is a positive integer, otherwise NULL.
+ */
+function _civicrmnewrelic_positive_int($value): ?int {
+  $id = is_scalar($value) ? filter_var($value, FILTER_VALIDATE_INT) : FALSE;
+  return ($id !== FALSE && $id > 0) ? $id : NULL;
+}
+
+/**
  * Builds the New Relic transaction name and custom parameters for a request.
  *
  * Pure function (no superglobals, no New Relic calls) so it can be unit
@@ -33,6 +47,13 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
   }
 
   /*
+   * Tag every transaction with the HTTP method so HEAD link-scanner traffic
+   * (e.g. mail clients pre-fetching tracking URLs) can be segmented from real
+   * GET clicks in New Relic.
+   */
+  $result['params']['http_method'] = $server['REQUEST_METHOD'] ?? 'UNKNOWN';
+
+  /*
    * Attach CiviCRM record context (contact/group IDs only, never names) when
    * present, so a slow/errored transaction can be tied to a specific record
    * in New Relic (e.g. "which contact is this slow contact/view for?"). Scoped
@@ -42,9 +63,8 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
    */
   if (strpos($uri, '/civicrm/') === 0) {
     foreach (['cid', 'gid'] as $idKey) {
-      $value = $request[$idKey] ?? NULL;
-      $id = is_scalar($value) ? filter_var($value, FILTER_VALIDATE_INT) : FALSE;
-      if ($id !== FALSE && $id > 0) {
+      $id = _civicrmnewrelic_positive_int($request[$idKey] ?? NULL);
+      if ($id !== NULL) {
         $result['params']["civicrm.$idKey"] = $id;
       }
     }
@@ -92,6 +112,26 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
   }
   else {
     $result['name'] = $uri;
+
+    /*
+     * Attach mailing click-through context on /civicrm/mailing/url so slow or
+     * errored tracking hits can be correlated back to a specific mailing URL
+     * and queue, and HEAD-based link scanners can be told apart from real
+     * clicks. CiviCRM reads these as ?u={url_id}&qid={queue_id}
+     * (see CRM_Mailing_Page_Url); IDs are validated as positive ints.
+     */
+    if ($uri === '/civicrm/mailing/url') {
+      $urlId = _civicrmnewrelic_positive_int($request['u'] ?? NULL);
+      if ($urlId !== NULL) {
+        $result['params']['mailing_url_id'] = $urlId;
+      }
+      $queueId = _civicrmnewrelic_positive_int($request['qid'] ?? NULL);
+      if ($queueId !== NULL) {
+        $result['params']['mailing_queue_id'] = $queueId;
+      }
+      $isScanner = ($server['REQUEST_METHOD'] ?? '') === 'HEAD';
+      $result['params']['mailing_is_scanner'] = $isScanner ? 'true' : 'false';
+    }
   }
 
   return $result;
@@ -133,4 +173,28 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
   foreach ($resolved['params'] as $key => $value) {
     newrelic_add_custom_parameter($key, $value);
   }
+}
+
+/**
+ * Reports unhandled CiviCRM exceptions to New Relic.
+ *
+ * CiviCRM fires this hook from CRM_Core_Error::handleUnhandledException() for
+ * any uncaught exception (for example the CRM_Core_Exception thrown by
+ * CRM_Mailing_Page_Url when a tracking URL can't be resolved). Without it New
+ * Relic only records a completed transaction with no error attached, so
+ * 500-level failures never show up in NR's error traces.
+ *
+ * The hook is dispatched as the Symfony event hook_civicrm_unhandled_exception,
+ * which CiviEventDispatcher::delegateToUF() maps to the legacy hook
+ * civicrm_unhandled_exception — hence the snake_case function name.
+ *
+ * @param \Throwable $exception
+ *   The unhandled exception.
+ */
+function civicrmnewrelic_civicrm_unhandled_exception($exception): void {
+  if (!extension_loaded('newrelic')) {
+    return;
+  }
+
+  newrelic_notice_error($exception->getMessage(), $exception);
 }
