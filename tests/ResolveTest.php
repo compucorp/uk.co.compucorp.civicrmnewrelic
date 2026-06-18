@@ -129,4 +129,50 @@ class ResolveTest extends TestCase {
     $this->assertSame('Contact.get', $r['params']['inner_calls']);
   }
 
+  public function testHttpMethodAttached(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/dashboard', 'REQUEST_METHOD' => 'GET']);
+    $this->assertSame('GET', $r['params']['http_method']);
+  }
+
+  public function testHttpMethodUnknownWhenMissing(): void {
+    $r = $this->resolve(['REQUEST_URI' => '/civicrm/dashboard']);
+    $this->assertSame('UNKNOWN', $r['params']['http_method']);
+  }
+
+  public function testHttpMethodNotAttachedWhenNoUri(): void {
+    $r = $this->resolve(['REQUEST_METHOD' => 'GET']);
+    $this->assertSame([], $r['params']);
+  }
+
+  public function testMailingUrlContextOnGet(): void {
+    $r = $this->resolve(
+      ['REQUEST_URI' => '/civicrm/mailing/url?u=5&qid=12', 'REQUEST_METHOD' => 'GET'],
+      ['u' => '5', 'qid' => '12']
+    );
+    $this->assertSame('/civicrm/mailing/url', $r['name']);
+    $this->assertSame(5, $r['params']['mailing_url_id']);
+    $this->assertSame(12, $r['params']['mailing_queue_id']);
+    $this->assertSame('false', $r['params']['mailing_is_scanner']);
+    $this->assertSame('GET', $r['params']['http_method']);
+  }
+
+  public function testMailingUrlScannerOnHead(): void {
+    $r = $this->resolve(
+      ['REQUEST_URI' => '/civicrm/mailing/url?u=5&qid=12', 'REQUEST_METHOD' => 'HEAD'],
+      ['u' => '5', 'qid' => '12']
+    );
+    $this->assertSame('true', $r['params']['mailing_is_scanner']);
+  }
+
+  public function testMailingUrlInvalidIdsOmitted(): void {
+    $r = $this->resolve(
+      ['REQUEST_URI' => '/civicrm/mailing/url', 'REQUEST_METHOD' => 'GET'],
+      ['u' => 'abc']
+    );
+    $this->assertArrayNotHasKey('mailing_url_id', $r['params']);
+    $this->assertArrayNotHasKey('mailing_queue_id', $r['params']);
+    // The scanner flag is always set, regardless of the id params.
+    $this->assertSame('false', $r['params']['mailing_is_scanner']);
+  }
+
 }
