@@ -1,0 +1,26 @@
+name: Tests
+
+on: pull_request
+
+jobs:
+  run-tests:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: ['7.4', '8.1']
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Install PHPUnit
+        run: curl -L https://phar.phpunit.de/phpunit-9.phar -o phpunit.phar
+
+      - name: Run unit tests
+        run: php phpunit.phar --configuration phpunit.xml.dist
