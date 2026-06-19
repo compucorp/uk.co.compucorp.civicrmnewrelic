@@ -15,7 +15,10 @@
  *   The integer when $value is a positive integer, otherwise NULL.
  */
 function _civicrmnewrelic_positive_int($value): ?int {
-  $id = is_scalar($value) ? filter_var($value, FILTER_VALIDATE_INT) : FALSE;
+  if (!is_scalar($value) || is_bool($value)) {
+    return NULL;
+  }
+  $id = filter_var($value, FILTER_VALIDATE_INT);
   return ($id !== FALSE && $id > 0) ? $id : NULL;
 }
 
@@ -191,7 +194,7 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
  * @param \Throwable $exception
  *   The unhandled exception.
  */
-function civicrmnewrelic_civicrm_unhandled_exception($exception): void {
+function civicrmnewrelic_civicrm_unhandled_exception(\Throwable $exception): void {
   if (!extension_loaded('newrelic')) {
     return;
   }

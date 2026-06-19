@@ -118,6 +118,13 @@ class ResolveTest extends TestCase {
     $this->assertArrayNotHasKey('civicrm.cid', $this->resolve(['REQUEST_URI' => '/civicrm/x'], ['cid' => '-3'])['params']);
   }
 
+  public function testBooleanIdRejected(): void {
+    // HTTP params are always strings, but the validator must not treat a
+    // boolean TRUE as ID 1 (filter_var(TRUE, FILTER_VALIDATE_INT) === 1).
+    $this->assertArrayNotHasKey('civicrm.cid', $this->resolve(['REQUEST_URI' => '/civicrm/x'], ['cid' => TRUE])['params']);
+    $this->assertArrayNotHasKey('civicrm.cid', $this->resolve(['REQUEST_URI' => '/civicrm/x'], ['cid' => FALSE])['params']);
+  }
+
   public function testJsonAsArrayDoesNotFatal(): void {
     $r = $this->resolve(['REQUEST_URI' => '/civicrm/ajax/rest'], ['entity' => 'api3', 'action' => 'call'], ['json' => ['x']]);
     $this->assertSame('api3.call', $r['name']);
