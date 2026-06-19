@@ -33,14 +33,13 @@ function _civicrmnewrelic_positive_int($value): ?int {
  * @param array $server
  *   The $_SERVER superglobal (or equivalent).
  * @param array $request
- *   The $_REQUEST superglobal (or equivalent).
- * @param array $post
- *   The $_POST superglobal (or equivalent).
+ *   The $_REQUEST superglobal (or equivalent). Also carries the api3.call
+ *   `json` payload (GET or POST), so $_POST need not be passed separately.
  *
  * @return array
  *   ['name' => string|null, 'params' => array<string,scalar>].
  */
-function _civicrmnewrelic_resolve(array $server, array $request, array $post): array {
+function _civicrmnewrelic_resolve(array $server, array $request): array {
   $result = ['name' => NULL, 'params' => []];
 
   $uri = parse_url($server['REQUEST_URI'] ?? '', PHP_URL_PATH);
@@ -97,8 +96,8 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
      * calls so it's possible to know exactly which API calls were sent.
      */
     if ($entity === 'api3' && $action === 'call'
-      && !empty($post['json']) && is_string($post['json'])) {
-      $apiCalls = json_decode($post['json'], TRUE, 512);
+      && !empty($request['json']) && is_string($request['json'])) {
+      $apiCalls = json_decode($request['json'], TRUE, 512);
       $innerCalls = [];
       if (is_array($apiCalls)) {
         foreach ($apiCalls as $apiCall) {
@@ -133,7 +132,7 @@ function _civicrmnewrelic_resolve(array $server, array $request, array $post): a
         $result['params']['mailing_queue_id'] = $queueId;
       }
       $isScanner = ($server['REQUEST_METHOD'] ?? '') === 'HEAD';
-      $result['params']['mailing_is_scanner'] = $isScanner ? 'true' : 'false';
+      $result['params']['mailing_is_scanner'] = $isScanner;
     }
   }
 
@@ -168,7 +167,7 @@ function civicrmnewrelic_civicrm_config(CRM_Core_Config $config): void {
     return;
   }
 
-  $resolved = _civicrmnewrelic_resolve($_SERVER, $_REQUEST, $_POST);
+  $resolved = _civicrmnewrelic_resolve($_SERVER, $_REQUEST);
 
   if ($resolved['name'] !== NULL) {
     newrelic_name_transaction($resolved['name']);
@@ -199,5 +198,5 @@ function civicrmnewrelic_civicrm_unhandled_exception(\Throwable $exception): voi
     return;
   }
 
-  newrelic_notice_error($exception->getMessage(), $exception);
+  newrelic_notice_error($exception);
 }

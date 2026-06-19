@@ -10,7 +10,7 @@ require_once __DIR__ . '/../civicrmnewrelic.php';
 class ResolveTest extends TestCase {
 
   private function resolve(array $server, array $request = [], array $post = []): array {
-    return _civicrmnewrelic_resolve($server, $request, $post);
+    return _civicrmnewrelic_resolve($server, array_merge($request, $post));
   }
 
   public function testCleanUrlPageNamedByPathWithCid(): void {
@@ -159,7 +159,7 @@ class ResolveTest extends TestCase {
     $this->assertSame('/civicrm/mailing/url', $r['name']);
     $this->assertSame(5, $r['params']['mailing_url_id']);
     $this->assertSame(12, $r['params']['mailing_queue_id']);
-    $this->assertSame('false', $r['params']['mailing_is_scanner']);
+    $this->assertFalse($r['params']['mailing_is_scanner']);
     $this->assertSame('GET', $r['params']['http_method']);
   }
 
@@ -168,7 +168,7 @@ class ResolveTest extends TestCase {
       ['REQUEST_URI' => '/civicrm/mailing/url?u=5&qid=12', 'REQUEST_METHOD' => 'HEAD'],
       ['u' => '5', 'qid' => '12']
     );
-    $this->assertSame('true', $r['params']['mailing_is_scanner']);
+    $this->assertTrue($r['params']['mailing_is_scanner']);
   }
 
   public function testMailingUrlInvalidIdsOmitted(): void {
@@ -179,7 +179,7 @@ class ResolveTest extends TestCase {
     $this->assertArrayNotHasKey('mailing_url_id', $r['params']);
     $this->assertArrayNotHasKey('mailing_queue_id', $r['params']);
     // The scanner flag is always set, regardless of the id params.
-    $this->assertSame('false', $r['params']['mailing_is_scanner']);
+    $this->assertFalse($r['params']['mailing_is_scanner']);
   }
 
 }
