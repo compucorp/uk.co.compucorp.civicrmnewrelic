@@ -9,7 +9,7 @@
     <email>info@compucorp.co.uk</email>
   </maintainer>
   <releaseDate>2026-11-01</releaseDate>
-  <version>7.2.0-beta2</version>
+  <version>7.2.0-beta3</version>
   <develStage>stable</develStage>
   <compatibility>
     <ver>5.28</ver>
